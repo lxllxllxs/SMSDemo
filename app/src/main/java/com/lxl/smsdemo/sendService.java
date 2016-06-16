@@ -2,12 +2,14 @@ package com.lxl.smsdemo;
 
 import android.app.Activity;
 import android.app.AlarmManager;
+import android.app.Notification;
 import android.app.PendingIntent;
 import android.app.Service;
 import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
+import android.content.SharedPreferences;
 import android.os.IBinder;
 import android.support.annotation.Nullable;
 import android.telephony.PhoneNumberUtils;
@@ -24,21 +26,21 @@ public class sendService extends Service {
 	private  static  final String TAG="sendService";
 	private  static final String ACTION_SEND="com.lxl.smsdemo.send";
 	private static  final String ACTION_DELIVER="com.lxl.smsdemo.deliver";
+	private  Notification.Builder builder;
 	@Override
 	public void onCreate() {
 		super.onCreate();
-/*
-		Notification.Builder builder=new Notification.Builder(this);
-		builder.setContentTitle("SMSDemo");
-		builder.setContentText("running");
+
+		builder=new Notification.Builder(this);
+		builder.setContentTitle("发送信息");
+		builder.setContentText("正在发送...");
 		builder.setAutoCancel(false);
-		builder.setTicker("Foreground Service Start");
+		builder.setTicker("发送短信");
 		builder.setSmallIcon(R.drawable.icon_lauch);
 		PendingIntent pendingIntent=PendingIntent.getActivity(this,0,new Intent(this,MainActivity.class),0);
 		builder.setContentIntent(pendingIntent);
 		startForeground(1,builder.build());
-		Log.d("sendService","finsh");*/
-
+		Log.d(TAG, "onCreate: ");
 	}
 
 	@Override
@@ -70,7 +72,14 @@ public class sendService extends Service {
 		}
 	}
 
+	@Override
+	public void onDestroy() {
 
+		unregisterReceiver(sendR);
+		unregisterReceiver(deliverR);
+
+		super.onDestroy();
+	}
 
 	private BroadcastReceiver sendR=new BroadcastReceiver() {
 		@Override
@@ -79,6 +88,9 @@ public class sendService extends Service {
 				case  Activity.RESULT_OK:
 					Toast.makeText(context,"发送成功",Toast.LENGTH_SHORT).show();
 					Log.d(TAG, "onReceive:\"发送成功\" ");
+
+
+					getSP();
 					stopSelf();
 					break;
 
@@ -89,6 +101,8 @@ public class sendService extends Service {
 				//发送失败
 					Toast.makeText(context,"send failure",Toast.LENGTH_SHORT).show();
 					Log.d(TAG, "onReceive 发送失败");
+					getSP();
+					stopSelf();
 					break;
 			}
 
@@ -105,14 +119,23 @@ public class sendService extends Service {
 				case Activity.RESULT_OK:
 					Toast.makeText(context,"对方已接受",Toast.LENGTH_SHORT).show();
 					Log.d(TAG, "onReceive 已接受");
+
 					break;
 
 				case Activity.RESULT_CANCELED:
 					Toast.makeText(context,"接受失败",Toast.LENGTH_SHORT).show();
 					Log.d(TAG, "onReceive 接受失败");
+
 					break;
 			}
 		}
 	};
+
+
+	public  void getSP(){
+		SharedPreferences.Editor ed=getSharedPreferences("smsDemo",Context.MODE_PRIVATE).edit();
+		ed.putBoolean("task",false);
+		ed.commit();
+	}
 
 }
