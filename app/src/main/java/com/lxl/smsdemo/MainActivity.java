@@ -18,6 +18,7 @@ import android.widget.Button;
 import android.widget.EditText;
 import android.widget.TimePicker;
 
+import java.text.SimpleDateFormat;
 import java.util.Calendar;
 
 public class MainActivity extends AppCompatActivity  {
@@ -31,7 +32,10 @@ public class MainActivity extends AppCompatActivity  {
 	private static  final String TAG="MainActivity";
 	private static  final  int PICK_CONTACT=0x123;
 	private Button btn;
+	private SharedPreferences sharedPreferences;
 
+	private SharedPreferences.Editor editor;
+	private static final int REQUESt_CODE=1;
 	@Override
 	protected void onCreate(Bundle savedInstanceState) {
 		super.onCreate(savedInstanceState);
@@ -46,21 +50,30 @@ public class MainActivity extends AppCompatActivity  {
 		contenttv=(EditText)findViewById(R.id.content);
 		btn=(Button)findViewById(R.id.custom);
 		alarmManager=(AlarmManager)getSystemService(ALARM_SERVICE);
+		sharedPreferences=getSharedPreferences("smsDemo", Context.MODE_PRIVATE);
+		editor=sharedPreferences.edit();
 		Intent i=new Intent(MainActivity.this,second.class);
 		pintent=PendingIntent.getActivity(MainActivity.this,0,i,0);
 		(findViewById(R.id.send)).setOnClickListener(onclicklistener);
 		(findViewById(R.id.custom)).setOnClickListener(onclicklistener);
-		if (getSharedPreferences("smsDemo",MODE_PRIVATE).getBoolean("task",false)){
-			btn.setVisibility(View.INVISIBLE);
+		if (sharedPreferences.getBoolean("task",false)){
+			btn.setText(sharedPreferences.getString("timer","0")+"发送");
 		}
 
 
 	}
 
 
+	@Override
+	protected void onResume() {
+		super.onResume();
+		if (sharedPreferences.getBoolean("task",false)){
+			btn.setText(sharedPreferences.getString("timer","0")+"发送");
+		}else {
+			btn.setText("定时");
+		}
 
-
-
+	}
 
 	private View.OnClickListener onclicklistener=new View.OnClickListener() {
 		@Override
@@ -72,10 +85,14 @@ public class MainActivity extends AppCompatActivity  {
 //					queryContacts();
 					break;
 				case R.id.custom:
-					SharedPreferences sp=getSharedPreferences("smsDemo", Context.MODE_PRIVATE);
-					SharedPreferences.Editor ed=sp.edit();
-					ed.putBoolean("task",true);
-					ed.commit();
+					if (sharedPreferences.getBoolean("task",false)){
+						Intent intent1=new Intent(MainActivity.this,sendService.class);
+						PendingIntent pendingIntent=PendingIntent.getService(MainActivity.this,REQUESt_CODE,intent1,0);
+						alarmManager.cancel(pendingIntent);
+						editor.putBoolean("task",false);
+						editor.commit();
+						btn.setText("定时");
+					}
 					timer();
 
 					break;
@@ -97,10 +114,18 @@ public class MainActivity extends AppCompatActivity  {
 				Log.d("Timer2",time+"");
 				Intent intent=new Intent(MainActivity.this,sendService.class);
 
-				intent.putExtra("number",numbertv.getText().toString());
-				intent.putExtra("content",contenttv.getText().toString());
-				PendingIntent pendingIntent=PendingIntent.getService(MainActivity.this,0,intent,0);
+
+				PendingIntent pendingIntent=PendingIntent.getService(MainActivity.this,REQUESt_CODE,intent,0);
 				alarmManager.set(AlarmManager.RTC,c.getTimeInMillis(),pendingIntent);
+				SimpleDateFormat formatter = new SimpleDateFormat("HH:mm");
+				String timer=formatter.format(c.getTimeInMillis()).toString();
+				editor.putString("number",numbertv.getText().toString());
+				editor.putString("content",contenttv.getText().toString());
+				editor.putBoolean("task",true);
+				editor.putString("timer",timer);
+				editor.commit();
+				btn.setText(timer+"发送");
+
 				Log.d("Timer3","complete");
 
 //				Toast.makeText(getApplicationContext(),"设置完毕"+cl.getTimeInMillis(),Toast.LENGTH_SHORT).show();

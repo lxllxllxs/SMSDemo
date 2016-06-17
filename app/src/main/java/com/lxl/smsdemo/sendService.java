@@ -15,6 +15,8 @@ import android.support.annotation.Nullable;
 import android.telephony.PhoneNumberUtils;
 import android.telephony.SmsManager;
 import android.util.Log;
+import android.view.View;
+import android.widget.Button;
 import android.widget.Toast;
 
 /**
@@ -27,6 +29,8 @@ public class sendService extends Service {
 	private  static final String ACTION_SEND="com.lxl.smsdemo.send";
 	private static  final String ACTION_DELIVER="com.lxl.smsdemo.deliver";
 	private  Notification.Builder builder;
+	private SharedPreferences sp;
+
 	@Override
 	public void onCreate() {
 		super.onCreate();
@@ -39,15 +43,17 @@ public class sendService extends Service {
 		builder.setSmallIcon(R.drawable.icon_lauch);
 		PendingIntent pendingIntent=PendingIntent.getActivity(this,0,new Intent(this,MainActivity.class),0);
 		builder.setContentIntent(pendingIntent);
+		sp=getSharedPreferences("smsDemo",MODE_PRIVATE);
 		startForeground(1,builder.build());
 		Log.d(TAG, "onCreate: ");
 	}
 
 	@Override
 	public int onStartCommand(Intent intent, int flags, int startId) {
-		String number=intent.getStringExtra("number");
-		String content=intent.getStringExtra("content");
+		String number=sp.getString("number","0");
+		String content=sp.getString("content","0");
 		Log.d(TAG, "onStartCommand: number"+number+"CONTENt"+content);
+
 		sendMessage(number,content);
 		return  START_NOT_STICKY ;
 	}
@@ -58,6 +64,9 @@ public class sendService extends Service {
 		return null;
 	}
 
+	/*
+	* 发送短信
+	* */
 	private void sendMessage(String phoneNumber,String message) {
 		//判断输入的phoneNumber是否为合法电话号码
 		if(PhoneNumberUtils.isGlobalPhoneNumber(phoneNumber)){
@@ -74,13 +83,14 @@ public class sendService extends Service {
 
 	@Override
 	public void onDestroy() {
-
 		unregisterReceiver(sendR);
 		unregisterReceiver(deliverR);
-
 		super.onDestroy();
 	}
 
+	/*
+	*
+	* */
 	private BroadcastReceiver sendR=new BroadcastReceiver() {
 		@Override
 		public void onReceive(Context context, Intent intent) {
@@ -88,8 +98,6 @@ public class sendService extends Service {
 				case  Activity.RESULT_OK:
 					Toast.makeText(context,"发送成功",Toast.LENGTH_SHORT).show();
 					Log.d(TAG, "onReceive:\"发送成功\" ");
-
-
 					getSP();
 					stopSelf();
 					break;
@@ -136,6 +144,8 @@ public class sendService extends Service {
 		SharedPreferences.Editor ed=getSharedPreferences("smsDemo",Context.MODE_PRIVATE).edit();
 		ed.putBoolean("task",false);
 		ed.commit();
+		Button btn=(Button)View.inflate(this,R.layout.activity_main,null).findViewById(R.id.custom);
+		btn.setText("定时");
 	}
 
 }
