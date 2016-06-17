@@ -12,11 +12,13 @@ import android.net.Uri;
 import android.os.Bundle;
 import android.provider.ContactsContract;
 import android.support.v7.app.AppCompatActivity;
+import android.text.TextUtils;
 import android.util.Log;
 import android.view.View;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.TimePicker;
+import android.widget.Toast;
 
 import java.text.SimpleDateFormat;
 import java.util.Calendar;
@@ -52,17 +54,12 @@ public class MainActivity extends AppCompatActivity  {
 		alarmManager=(AlarmManager)getSystemService(ALARM_SERVICE);
 		sharedPreferences=getSharedPreferences("smsDemo", Context.MODE_PRIVATE);
 		editor=sharedPreferences.edit();
-		Intent i=new Intent(MainActivity.this,second.class);
-		pintent=PendingIntent.getActivity(MainActivity.this,0,i,0);
 		(findViewById(R.id.send)).setOnClickListener(onclicklistener);
 		(findViewById(R.id.custom)).setOnClickListener(onclicklistener);
 		if (sharedPreferences.getBoolean("task",false)){
 			btn.setText(sharedPreferences.getString("timer","0")+"发送");
 		}
-
-
 	}
-
 
 	@Override
 	protected void onResume() {
@@ -92,9 +89,13 @@ public class MainActivity extends AppCompatActivity  {
 						editor.putBoolean("task",false);
 						editor.commit();
 						btn.setText("定时");
+					}else {
+						if (TextUtils.isEmpty(numbertv.getText().toString())||TextUtils.isEmpty(contenttv.getText().toString())){
+							Toast.makeText(getApplicationContext(),"号码或内容不能为空",Toast.LENGTH_SHORT).show();
+							return;
+						}
+						timer();
 					}
-					timer();
-
 					break;
 			}
 		}
@@ -113,12 +114,11 @@ public class MainActivity extends AppCompatActivity  {
 				long time=c.getTimeInMillis();
 				Log.d("Timer2",time+"");
 				Intent intent=new Intent(MainActivity.this,sendService.class);
-
-
 				PendingIntent pendingIntent=PendingIntent.getService(MainActivity.this,REQUESt_CODE,intent,0);
 				alarmManager.set(AlarmManager.RTC,c.getTimeInMillis(),pendingIntent);
 				SimpleDateFormat formatter = new SimpleDateFormat("HH:mm");
 				String timer=formatter.format(c.getTimeInMillis()).toString();
+				//将号码，信息内容，是否存在任务，任务存在时间保存到sp文件里
 				editor.putString("number",numbertv.getText().toString());
 				editor.putString("content",contenttv.getText().toString());
 				editor.putBoolean("task",true);
@@ -135,6 +135,9 @@ public class MainActivity extends AppCompatActivity  {
 
 	}
 
+	/*
+	*返回一个uri,调用 queryContacts（）方法设置号码
+	* */
 
 	@Override
 	public void onActivityResult(int reqCode, int resultCode, Intent data) {
@@ -152,9 +155,9 @@ public class MainActivity extends AppCompatActivity  {
 		}
 	}
 
-
-
-
+	/*
+	* 取得联系人号码
+	* */
 	public void queryContacts(Uri data){
 		Uri uri=data;
 		Cursor cursor=getContentResolver().query(uri,null,null,null,null);
